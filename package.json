@@ -1,0 +1,27 @@
+{
+  "name": "typescript-template",
+  "version": "1.0.0",
+  "description": "A Typescript Template",
+  "main": "src/main.ts",
+  "scripts": {
+    "tsc": "tsc --build tsconfig.json",
+    "start": "npm run tsc && npm run start_lite",
+    "start_lite": "node dist/main.js",
+    "dev": "nodemon"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PolPtoAmo/Typescript-Template.git"
+  },
+  "author": "Pol",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^4.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^16.9.1",
+    "nodemon": "^2.0.12",
+    "ts-node": "^10.2.1",
+    "tslib": "^2.3.0"
+  }
+}
