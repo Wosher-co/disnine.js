@@ -1,7 +1,7 @@
 {
-  "name": "typescript-template",
+  "name": "disnine.js",
   "version": "1.0.0",
-  "description": "A Typescript Template",
+  "description": "A Discord Framework",
   "main": "src/main.ts",
   "scripts": {
     "tsc": "tsc --build tsconfig.json",
@@ -11,11 +11,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PolPtoAmo/Typescript-Template.git"
+    "url": "git+https://github.com/PolPtoAmo/disnine.js.git"
   },
   "author": "Pol",
   "license": "ISC",
   "dependencies": {
+    "@discordjs/builders": "^0.7.0",
+    "@discordjs/rest": "^0.1.0-canary.0",
+    "discord-api-types": "^0.24.0",
+    "discord.js": "^13.2.0",
     "typescript": "^4.3.4"
   },
   "devDependencies": {
