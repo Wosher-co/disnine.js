@@ -11,10 +11,50 @@ import {
 } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v9";
-import { CommandInteraction, Interaction } from "discord.js";
-import path from "path";
+import { Client, CommandInteraction, GuildMember, Interaction } from "discord.js";
 import fs from "fs/promises";
 import DisBot from "../DisBot";
+
+function getGuildMember(interaction: Interaction): GuildMember | undefined {
+  if (interaction.member instanceof GuildMember) {
+    return interaction.member as GuildMember;
+  }
+
+  return undefined;
+}
+
+function hasPermissions(member: GuildMember, perms?: CommandPermissions): boolean {
+  if (perms === undefined) return true;
+  const strict = perms.strict;
+
+  if (perms.roles !== undefined && perms.roles.length !== 0) {
+    let hasAtleastOneRole = false;
+    for (const role of perms.roles) {
+      if (member.roles.cache.some((r) => r.id === role)) {
+        hasAtleastOneRole = true;
+      } else {
+        if (strict) return false;
+      }
+    }
+
+    return hasAtleastOneRole;
+  }
+
+  if (perms.permissions !== undefined && perms.permissions.length !== 0) {
+    let hasAtleastOnePerm = false;
+    for (const perm of perms.permissions) {
+      if (member.permissions.has(perm)) {
+        hasAtleastOnePerm = true
+      } else {
+        if (strict) return false;
+      }
+    }
+
+    return hasAtleastOnePerm;
+  }
+
+  return true;
+}
 
 export enum ArgumentType {
   STRING,
@@ -127,12 +167,12 @@ export type CommandPermissions = {
    */
   roles?: string[];
   /**
-   * Needed permissions to use this command.
+   * Needed permissions to use this command. If you're using roles, this will be ignored.
    */
-  permissions?: string[];
+  permissions?: bigint[];
   /**
-   * True -> The user must have all the permissions and all the roles.
-   * False -> The user must have any of the roles or any of the perms.
+   * True -> The user must meet all the roles/permissions.
+   * False -> The user must meet any of the roles/permissions.
    */
   strict: boolean;
 }
@@ -166,11 +206,30 @@ export default class CommandHandler {
   bot: DisBot;
   commands: BaseCommand[];
 
-  constructor(bot: DisBot, options: CommandHandlerOptions) {
+  constructor(bot: DisBot, client: Client, options: CommandHandlerOptions) {
     this.bot = bot;
     this.commands = [];
 
     console.log("\nLoading commands...");
+
+    client.on("interactionCreate", async (interaction) => {
+      if (!interaction.isCommand()) return;
+
+      const cmd = await bot.commandManager.findCommand(interaction.commandName);
+      if (cmd === undefined) return;
+
+      const member = getGuildMember(interaction);
+      if (member === undefined) {
+        return;
+      }
+
+      if (!hasPermissions(member, cmd.permission)) {
+        // TODO: Send error event
+        return;
+      }
+
+      await cmd.execute(bot, interaction);
+    });
 
     this.reloadCommands(options.commandsPath);
   }
