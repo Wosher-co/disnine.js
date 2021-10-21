@@ -34,7 +34,7 @@ function hasPermissions(
   perms?: CommandPermissions
 ): boolean {
   if (perms === undefined) return true;
-  const strict = perms.strict;
+  const strict = perms.strict === undefined ? false : perms.strict;
 
   if (perms.roles !== undefined && perms.roles.length !== 0) {
     let hasAtleastOneRole = false;
@@ -186,7 +186,7 @@ export type CommandPermissions = {
    * True -> The user must meet all the roles/permissions.
    * False -> The user must meet any of the roles/permissions.
    */
-  strict: boolean;
+  strict?: boolean;
 };
 
 interface Command {
