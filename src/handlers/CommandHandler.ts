@@ -7,11 +7,17 @@ import {
   SlashCommandNumberOption,
   SlashCommandRoleOption,
   SlashCommandStringOption,
+  SlashCommandSubcommandBuilder,
   SlashCommandUserOption,
 } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v9";
-import { Client, CommandInteraction, GuildMember, Interaction } from "discord.js";
+import {
+  Client,
+  CommandInteraction,
+  GuildMember,
+  Interaction,
+} from "discord.js";
 import fs from "fs/promises";
 import DisBot from "../DisBot";
 
@@ -23,7 +29,10 @@ function getGuildMember(interaction: Interaction): GuildMember | undefined {
   return undefined;
 }
 
-function hasPermissions(member: GuildMember, perms?: CommandPermissions): boolean {
+function hasPermissions(
+  member: GuildMember,
+  perms?: CommandPermissions
+): boolean {
   if (perms === undefined) return true;
   const strict = perms.strict;
 
@@ -44,7 +53,7 @@ function hasPermissions(member: GuildMember, perms?: CommandPermissions): boolea
     let hasAtleastOnePerm = false;
     for (const perm of perms.permissions) {
       if (member.permissions.has(perm)) {
-        hasAtleastOnePerm = true
+        hasAtleastOnePerm = true;
       } else {
         if (strict) return false;
       }
@@ -89,7 +98,10 @@ export class SlashArgument {
   }
 }
 
-function processArgument(arg: SlashArgument, builder: SlashCommandBuilder) {
+function processArgument(
+  arg: SlashArgument,
+  builder: SlashCommandBuilder | SlashCommandSubcommandBuilder
+) {
   switch (arg.type) {
     case ArgumentType.STRING:
       builder.addStringOption(
@@ -175,32 +187,100 @@ export type CommandPermissions = {
    * False -> The user must meet any of the roles/permissions.
    */
   strict: boolean;
-}
+};
 
-export class BaseCommand {
+interface Command {
   name: string;
   description: string;
   permission?: CommandPermissions;
-  argument?: SlashArgument | SlashArgument[];
-  // TODO: Subcommands
+  argument: SlashArgument[];
 
-  constructor(name: string, description: string, permission?: CommandPermissions, argument?: SlashArgument | SlashArgument[]) {
+  // TODO: CommandInteraction should be wrapped in a future.
+  execute(bot: DisBot, interaction: CommandInteraction): Promise<boolean>;
+}
+
+export class BaseCommand implements Command {
+  name: string;
+  description: string;
+  permission?: CommandPermissions;
+  argument: SlashArgument[];
+  subcommands: BaseSubcommand[];
+
+  constructor(
+    name: string,
+    description: string,
+    permission?: CommandPermissions,
+    argument?: SlashArgument | SlashArgument[],
+    subcommands?: BaseSubcommand | BaseSubcommand[]
+  ) {
     this.name = name;
     this.description = description;
     if (permission !== undefined) this.permission = permission;
-    if (argument !== undefined) this.argument = argument;
+
+    if (argument === undefined) {
+      this.argument = [];
+    } else if (argument instanceof SlashArgument) {
+      this.argument = [argument];
+    } else {
+      this.argument = argument;
+    }
+
+    if (subcommands === undefined) {
+      this.subcommands = [];
+    } else if (subcommands instanceof BaseSubcommand) {
+      this.subcommands = [subcommands];
+    } else {
+      this.subcommands = subcommands;
+    }
   }
 
-  // TODO: CommandInteraction should be wrapped in a future.
-  async execute(bot: DisBot, interaction: CommandInteraction): Promise<boolean> {
-    console.log(`Event not implemented on ${__filename}`);
+  async execute(
+    bot: DisBot,
+    interaction: CommandInteraction
+  ): Promise<boolean> {
+    console.log(`Command not implemented on ${__filename}`);
+    return false;
+  }
+}
+
+export class BaseSubcommand implements Command {
+  name: string;
+  description: string;
+  permission?: CommandPermissions;
+  argument: SlashArgument[];
+
+  constructor(
+    name: string,
+    description: string,
+    permission?: CommandPermissions,
+    argument?: SlashArgument | SlashArgument[]
+  ) {
+    this.name = name;
+    this.description = description;
+
+    if (permission !== undefined) this.permission = permission;
+
+    if (argument === undefined) {
+      this.argument = [];
+    } else if (argument instanceof SlashArgument) {
+      this.argument = [argument];
+    } else {
+      this.argument = argument;
+    }
+  }
+
+  async execute(
+    bot: DisBot,
+    interaction: CommandInteraction
+  ): Promise<boolean> {
+    console.log(`Subcommand not implemented on ${this.name} -> ${__filename}`);
     return false;
   }
 }
 
 export type CommandHandlerOptions = {
   commandsPath: string;
-}
+};
 
 export default class CommandHandler {
   bot: DisBot;
@@ -240,10 +320,16 @@ export default class CommandHandler {
     const files = await fs.readdir(path);
 
     files.forEach(async (file) => {
-      if (file.endsWith(".d.ts") || !(file.endsWith(".ts") || file.endsWith(".js"))) return;
+      if (
+        file.endsWith(".d.ts") ||
+        !(file.endsWith(".ts") || file.endsWith(".js"))
+      )
+        return;
 
       try {
-        const command = new ((await import(`./../commands/${file}`)).default)() as BaseCommand;
+        const command = new (
+          await import(`./../commands/${file}`)
+        ).default() as BaseCommand;
 
         this.commands.push(command);
         console.log(`Loaded command "${command.name}"`);
@@ -253,29 +339,41 @@ export default class CommandHandler {
         } else {
           console.error(e);
         }*/
-        console.log("=================================")
+        console.log("=================================");
         console.log(`\nFile "${file} is not a valid command\n`);
         console.error(e);
         console.log(`\nFile "${file} is not a valid command\n`);
-        console.log("=================================")
+        console.log("=================================");
       }
     });
   }
 
   async sendCommands(guildId: string) {
     const formatedCommands = this.commands.map((command) => {
+      // Setting basic things for Command
       const slashCommand = new SlashCommandBuilder()
         .setName(command.name)
         .setDescription(command.description);
-      if (command.argument !== undefined) {
-        if (command.argument instanceof SlashArgument) {
-          processArgument(command.argument, slashCommand);
-        } else {
-          command.argument.forEach((arg) => {
-            processArgument(arg, slashCommand);
+
+      // Registering sub commands
+      command.subcommands.forEach((subcommand) =>
+        slashCommand.addSubcommand((sb) => {
+          // Setting basic things for Subcommand
+          sb.setName(subcommand.name).setDescription(subcommand.description);
+
+          // Registering args for subcommands
+          subcommand.argument.forEach((arg) => {
+            processArgument(arg, sb);
           });
-        }
-      }
+
+          return sb;
+        })
+      );
+
+      // Setting arguments for command
+      command.argument.forEach((arg) => {
+        processArgument(arg, slashCommand);
+      });
       return slashCommand;
     });
 
