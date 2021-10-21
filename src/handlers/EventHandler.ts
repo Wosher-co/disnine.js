@@ -98,9 +98,6 @@ export interface DisEvents {
 
 export type DisEventsNames = keyof DisEvents;
 
-/** @deprecated Should be moved to DisEvents at some point */
-export type EventNames = keyof ClientEvents;
-
 export class BaseListener {
   event: DisEventsNames;
   name: string;
