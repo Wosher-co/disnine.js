@@ -2,7 +2,7 @@ import DisBot from "../DisBot";
 import shortuuid from "short-uuid";
 import { ButtonInteraction } from "discord.js/typings/index.js";
 
-export type HandlerFunction = (bot: DisBot, interaction: ButtonInteraction) => Promise<any>;
+export type HandlerFunction = (bot: DisBot, interaction: ButtonInteraction) => any;
 
 class WrappedFunction {
   suuid: string;
@@ -36,12 +36,15 @@ export default class ButtonHandler {
 
       if (handler === undefined) return;
 
-      setTimeout(() => {
+      // Automatic defer not working. Looking to wrap the interaction, and check for update to be editReply if defered.
+      /*setTimeout(() => {
         if (!done) interaction.deferUpdate();
       }, 2000);
 
       await handler(this.bot, interaction);
-      done = true;
+      done = true;*/
+
+      await handler(this.bot, interaction);
     });
 
     // Garbage Collector :D
