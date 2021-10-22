@@ -325,7 +325,7 @@ export default class CommandHandler {
       }
 
       if (!hasPermissions(member, cmd.permission)) {
-        // TODO: Send error event
+        await this.bot.eventHandler.runEvent("noPermissions", member, cmd);
         return;
       }
 
