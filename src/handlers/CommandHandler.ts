@@ -339,15 +339,14 @@ export default class CommandHandler {
         this.commands.push(command);
         console.log(`Loaded command "${command.name}"`);
       } catch (e) {
-        /*if (e instanceof SyntaxError) {
-          console.log(`File "${file} is not a valid command`);
-        } else {
+        if (this.bot.debug) {
+          console.log("=================================");
+          console.log(`\nFile "${file} is not a valid command\n`);
           console.error(e);
-        }*/
-        console.log("=================================");
-        console.log(`\nFile "${file} is not a valid command\n`);
-        console.error(e);
-        console.log("\n=================================\n");
+          console.log("\n=================================\n");
+        } else {
+          console.log(`File "${file} is not a valid command. Remove it from the folder, or fix it.`);
+        }
       }
     });
   }

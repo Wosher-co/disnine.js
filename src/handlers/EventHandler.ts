@@ -127,7 +127,7 @@ export default class EventHandler {
     this.bot = bot;
     this.listeners = [];
 
-    console.log("\nLoading events...");
+    console.log("Loading events...");
 
     // Registering RAW events
     this.bot._client.on("raw", async (packet) => {
@@ -195,13 +195,16 @@ export default class EventHandler {
         this.listeners.push(listener);
 
         console.log(
-          `Loaded event ${listener.event} - ${listener.name} - Priority: ${listener.priority}`
+          `Loaded listener ${listener.name} listening to ${listener.event}`
         );
       } catch (e) {
-        if (e instanceof SyntaxError) {
-          console.log(`File "${file} is not a valid event`);
-        } else {
+        if (this.bot.debug) {
+          console.log("=================================");
+          console.log(`\nFile "${file} is not a valid listener\n`);
           console.error(e);
+          console.log("\n=================================\n");
+        } else {
+          console.log(`File "${file} is not a valid listener. Remove it from the folder, or fix it.`);
         }
       }
     });
