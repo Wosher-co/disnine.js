@@ -29,42 +29,6 @@ function getGuildMember(interaction: Interaction): GuildMember | undefined {
   return undefined;
 }
 
-function hasPermissions(
-  member: GuildMember,
-  perms?: CommandPermissions
-): boolean {
-  if (perms === undefined) return true;
-  const strict = perms.strict === undefined ? false : perms.strict;
-
-  if (perms.roles !== undefined && perms.roles.length !== 0) {
-    let hasAtleastOneRole = false;
-    for (const role of perms.roles) {
-      if (member.roles.cache.some((r) => r.id === role)) {
-        hasAtleastOneRole = true;
-      } else {
-        if (strict) return false;
-      }
-    }
-
-    return hasAtleastOneRole;
-  }
-
-  if (perms.permissions !== undefined && perms.permissions.length !== 0) {
-    let hasAtleastOnePerm = false;
-    for (const perm of perms.permissions) {
-      if (member.permissions.has(perm)) {
-        hasAtleastOnePerm = true;
-      } else {
-        if (strict) return false;
-      }
-    }
-
-    return hasAtleastOnePerm;
-  }
-
-  return true;
-}
-
 export enum ArgumentType {
   STRING,
   INTEGER,
@@ -173,26 +137,33 @@ function processArgument(
   }
 }
 
-export type CommandPermissions = {
-  /**
-   * Whitelisted roles to use this command.
-   */
-  roles?: string[];
-  /**
-   * Needed permissions to use this command. If you're using roles, this will be ignored.
-   */
-  permissions?: bigint[];
-  /**
-   * True -> The user must meet all the roles/permissions.
-   * False -> The user must meet any of the roles/permissions.
-   */
-  strict?: boolean;
+export enum CommandPermissionType {
+  USER,
+  ROLE
+}
+
+export class CommandPermission {
+  type: CommandPermissionType;
+  id: string;
+
+  constructor (type: CommandPermissionType, id: string) {
+    this.type = type;
+    this.id = id;
+  }
+
+  static ROLE(id: string) {
+    return new this(CommandPermissionType.ROLE, id);
+  }
+
+  static USER(id: string) {
+    return new this(CommandPermissionType.USER, id);
+  }
 };
 
 interface Command {
   name: string;
   description: string;
-  permission?: CommandPermissions;
+  permission?: CommandPermission[];
   argument: SlashArgument[];
   /**
    * "global" -> Will be registered to all guilds.
@@ -210,7 +181,7 @@ interface Command {
 export class BaseCommand implements Command {
   name: string;
   description: string;
-  permission?: CommandPermissions;
+  permission?: CommandPermission[];
   argument: SlashArgument[];
   subcommands: BaseSubcommand[];
   accessibleFrom: "global" | string[];
@@ -218,14 +189,20 @@ export class BaseCommand implements Command {
   constructor(
     name: string,
     description: string,
-    permission?: CommandPermissions,
+    permission?: CommandPermission | CommandPermission[],
     argument?: SlashArgument | SlashArgument[],
     subcommands?: BaseSubcommand | BaseSubcommand[],
     accessibleFrom?: "global" | string[]
   ) {
     this.name = name;
     this.description = description;
-    if (permission !== undefined) this.permission = permission;
+    if (permission == undefined) {
+      this.permission = [];
+    } else if (permission instanceof CommandPermission) {
+      this.permission = [permission];
+    } else {
+      this.permission = permission;
+    }
 
     if (argument === undefined) {
       this.argument = [];
@@ -259,21 +236,27 @@ export class BaseCommand implements Command {
 export class BaseSubcommand implements Command {
   name: string;
   description: string;
-  permission?: CommandPermissions;
+  permission?: CommandPermission[];
   argument: SlashArgument[];
   accessibleFrom: "global" | string[];
 
   constructor(
     name: string,
     description: string,
-    permission?: CommandPermissions,
+    permission?: CommandPermission | CommandPermission[],
     argument?: SlashArgument | SlashArgument[],
     accessibleFrom?: "global" | string[]
   ) {
     this.name = name;
     this.description = description;
 
-    if (permission !== undefined) this.permission = permission;
+    if (permission == undefined) {
+      this.permission = [];
+    } else if (permission instanceof CommandPermission) {
+      this.permission = [permission];
+    } else {
+      this.permission = permission;
+    }
 
     if (argument === undefined) {
       this.argument = [];
@@ -318,11 +301,6 @@ export default class CommandHandler {
 
       const member = getGuildMember(interaction);
       if (member === undefined) {
-        return;
-      }
-
-      if (!hasPermissions(member, cmd.permission)) {
-        // TODO: Send error event
         return;
       }
 
