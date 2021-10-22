@@ -1,4 +1,5 @@
 import { ChannelManager, Client, ClientOptions, ClientUser, ClientVoiceManager, GuildManager, ShardClientUtil, User, UserManager } from "discord.js";
+import ButtonHandler from "./handlers/ButtonHandler";
 import CommandHandler, { CommandHandlerOptions } from "./handlers/CommandHandler";
 import EventHandler, { EventHandlerOptions } from "./handlers/EventHandler";
 
@@ -14,6 +15,7 @@ export default class DisBot {
   _client: Client;
   commandManager: CommandHandler;
   eventHandler: EventHandler;
+  buttonHandler: ButtonHandler;
 
   constructor (options: DisBotOptions, commandHandlerOptions: CommandHandlerOptions, eventHandlerOptions: EventHandlerOptions) {
     if (options.debug !== undefined) this.debug = options.debug;
@@ -22,6 +24,7 @@ export default class DisBot {
 
     this.commandManager = new CommandHandler(this, this._client, commandHandlerOptions);
     this.eventHandler = new EventHandler(this, eventHandlerOptions);
+    this.buttonHandler = new ButtonHandler(this)
 
     this._client.on("ready", async () => {
       console.log("Bot ready, sending commands...");
