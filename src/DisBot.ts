@@ -59,4 +59,8 @@ export default class DisBot {
   get ready(): boolean {
     return this._client.isReady();
   }
+
+  login(token?: string): Promise<string> {
+    return this._client.login(token);
+  }
 }
