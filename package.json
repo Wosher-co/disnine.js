@@ -1,6 +1,6 @@
 {
   "name": "disnine.js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Discord Framework",
   "scripts": {
     "tsc": "tsc --build tsconfig.json"
