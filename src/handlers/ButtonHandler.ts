@@ -2,7 +2,7 @@ import DisBot from "../DisBot";
 import shortuuid from "short-uuid";
 import { ButtonInteraction } from "discord.js/typings/index.js";
 
-export type HandlerFunction = (bot: DisBot, interaction: ButtonInteraction) => Promise<void>;
+export type HandlerFunction = (bot: DisBot, interaction: ButtonInteraction) => Promise<any>;
 
 class WrappedFunction {
   suuid: string;
