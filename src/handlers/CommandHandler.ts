@@ -196,7 +196,7 @@ interface Command {
   argument: SlashArgument[];
 
   // TODO: CommandInteraction should be wrapped in a future.
-  execute(bot: DisBot, interaction: CommandInteraction): Promise<boolean>;
+  execute(bot: DisBot, interaction: CommandInteraction): Promise<boolean | void>;
 }
 
 export class BaseCommand implements Command {
@@ -237,7 +237,7 @@ export class BaseCommand implements Command {
   async execute(
     bot: DisBot,
     interaction: CommandInteraction
-  ): Promise<boolean> {
+  ): Promise<boolean | void> {
     console.log(`Command not implemented on ${__filename}`);
     return false;
   }
@@ -272,7 +272,7 @@ export class BaseSubcommand implements Command {
   async execute(
     bot: DisBot,
     interaction: CommandInteraction
-  ): Promise<boolean> {
+  ): Promise<boolean | void> {
     console.log(`Subcommand not implemented on ${this.name} -> ${__filename}`);
     return false;
   }
@@ -308,7 +308,12 @@ export default class CommandHandler {
         return;
       }
 
-      await cmd.execute(bot, interaction);
+      // Executing command
+      const result = await cmd.execute(bot, interaction);
+
+      if (result !== undefined && !result) {
+        // TODO: Send failed command event
+      }
     });
 
     this.reloadCommands(options.commandsPath);
@@ -342,8 +347,7 @@ export default class CommandHandler {
         console.log("=================================");
         console.log(`\nFile "${file} is not a valid command\n`);
         console.error(e);
-        console.log(`\nFile "${file} is not a valid command\n`);
-        console.log("=================================");
+        console.log("\n=================================\n");
       }
     });
   }
