@@ -9,6 +9,7 @@ export interface DisBotOptions {
 
 export default class DisBot {
   debug: boolean = false;
+  _token: string = "";
 
   _client: Client;
   commandManager: CommandHandler;
@@ -24,10 +25,8 @@ export default class DisBot {
 
     this._client.on("ready", async () => {
       console.log("Bot ready, sending commands...");
-      // TODO: Better command sending (currectly sending to all guilds (Bad method))
-      this._client.guilds.cache.forEach(async (guild) => {
-        await this.commandManager.sendCommands(guild.id);
-      });
+      // Sending commands
+      await this.commandManager.sendCommands();
     });
   }
 
@@ -60,7 +59,8 @@ export default class DisBot {
     return this._client.isReady();
   }
 
-  login(token?: string): Promise<string> {
-    return this._client.login(token);
+  login(token: string): Promise<string> {
+    this._token = token;
+    return this._client.login(this._token);
   }
 }

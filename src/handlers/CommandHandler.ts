@@ -194,9 +194,17 @@ interface Command {
   description: string;
   permission?: CommandPermissions;
   argument: SlashArgument[];
+  /**
+   * "global" -> Will be registered to all guilds.
+   * string[] -> Array of guild ids that the command will be sent to.
+   */
+  accessibleFrom: "global" | string[];
 
   // TODO: CommandInteraction should be wrapped in a future.
-  execute(bot: DisBot, interaction: CommandInteraction): Promise<boolean | void>;
+  execute(
+    bot: DisBot,
+    interaction: CommandInteraction
+  ): Promise<boolean | void>;
 }
 
 export class BaseCommand implements Command {
@@ -205,13 +213,15 @@ export class BaseCommand implements Command {
   permission?: CommandPermissions;
   argument: SlashArgument[];
   subcommands: BaseSubcommand[];
+  accessibleFrom: "global" | string[];
 
   constructor(
     name: string,
     description: string,
     permission?: CommandPermissions,
     argument?: SlashArgument | SlashArgument[],
-    subcommands?: BaseSubcommand | BaseSubcommand[]
+    subcommands?: BaseSubcommand | BaseSubcommand[],
+    accessibleFrom?: "global" | string[]
   ) {
     this.name = name;
     this.description = description;
@@ -232,6 +242,9 @@ export class BaseCommand implements Command {
     } else {
       this.subcommands = subcommands;
     }
+
+    this.accessibleFrom =
+      accessibleFrom === undefined ? "global" : accessibleFrom;
   }
 
   async execute(
@@ -248,12 +261,14 @@ export class BaseSubcommand implements Command {
   description: string;
   permission?: CommandPermissions;
   argument: SlashArgument[];
+  accessibleFrom: "global" | string[];
 
   constructor(
     name: string,
     description: string,
     permission?: CommandPermissions,
-    argument?: SlashArgument | SlashArgument[]
+    argument?: SlashArgument | SlashArgument[],
+    accessibleFrom?: "global" | string[]
   ) {
     this.name = name;
     this.description = description;
@@ -267,6 +282,9 @@ export class BaseSubcommand implements Command {
     } else {
       this.argument = argument;
     }
+
+    this.accessibleFrom =
+      accessibleFrom === undefined ? "global" : accessibleFrom;
   }
 
   async execute(
@@ -345,54 +363,56 @@ export default class CommandHandler {
           console.error(e);
           console.log("\n=================================\n");
         } else {
-          console.log(`File "${file} is not a valid command. Remove it from the folder, or fix it.`);
+          console.log(
+            `File "${file} is not a valid command. Remove it from the folder, or fix it.`
+          );
         }
       }
     });
   }
 
-  async sendCommands(guildId: string) {
-    const formatedCommands = this.commands.map((command) => {
-      // Setting basic things for Command
-      const slashCommand = new SlashCommandBuilder()
-        .setName(command.name)
-        .setDescription(command.description);
+  async formatCommand(command: BaseCommand): Promise<SlashCommandBuilder> {
+    // Setting basic things for Command
+    const slashCommand = new SlashCommandBuilder()
+      .setName(command.name)
+      .setDescription(command.description);
 
-      // Registering sub commands
-      command.subcommands.forEach((subcommand) =>
-        slashCommand.addSubcommand((sb) => {
-          // Setting basic things for Subcommand
-          sb.setName(subcommand.name).setDescription(subcommand.description);
+    // Registering sub commands
+    command.subcommands.forEach((subcommand) =>
+      slashCommand.addSubcommand((sb) => {
+        // Setting basic things for Subcommand
+        sb.setName(subcommand.name).setDescription(subcommand.description);
 
-          // Registering args for subcommands
-          subcommand.argument.forEach((arg) => {
-            processArgument(arg, sb);
-          });
+        // Registering args for subcommands
+        subcommand.argument.forEach((arg) => {
+          processArgument(arg, sb);
+        });
 
-          return sb;
-        })
-      );
-
-      // Setting arguments for command
-      command.argument.forEach((arg) => {
-        processArgument(arg, slashCommand);
-      });
-      return slashCommand;
-    });
-
-    const rest = new REST({ version: "9" }).setToken(
-      process.env.TOKEN === undefined ? "" : process.env.TOKEN
+        return sb;
+      })
     );
 
-    rest
-      .put(
-        Routes.applicationGuildCommands(
-          process.env.CLIENTID === undefined ? "" : process.env.CLIENTID,
-          guildId
-        ),
-        { body: formatedCommands }
-      )
-      .then(() => console.log(`Registered commands for guild: ${guildId}`));
+    // Setting arguments for command
+    command.argument.forEach((arg) => {
+      processArgument(arg, slashCommand);
+    });
+    return slashCommand;
+  }
+
+  async sendCommands() {
+    this.commands.forEach(async (cmd) => {
+      const slashBuilder = await this.formatCommand(cmd);
+
+      const rest = new REST({ version: "9" }).setToken(this.bot._token);
+
+      if (cmd.accessibleFrom === "global") {
+        await rest.put(Routes.applicationCommands(this.bot._client.user!.id), {body: [slashBuilder]});
+      } else {
+        cmd.accessibleFrom.forEach((guildid) => {
+          rest.put(Routes.applicationGuildCommands(this.bot._client.user!.id, guildid), {body: [slashBuilder]})
+        });
+      }
+    });
   }
 
   async findCommand(name: string) {
