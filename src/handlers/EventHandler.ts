@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import { ApplicationCommand, Client, ClientEvents, Collection, DMChannel, Guild, GuildBan, GuildChannel, GuildEmoji, GuildMember, Interaction, InvalidRequestWarningData, Invite, Message, MessageReaction, NewsChannel, PartialGuildMember, PartialMessage, PartialMessageReaction, PartialUser, Presence, RateLimitData, Role, Snowflake, StageInstance, Sticker, TextBasedChannels, TextChannel, ThreadChannel, ThreadMember, Typing, User, VoiceState } from "discord.js";
 import DisBot from "../DisBot";
 import { BaseCommand } from "./CommandHandler";
+import path from "path";
 
 export enum Priority {
   EMERGENCY = 256,
@@ -182,16 +183,16 @@ export default class EventHandler {
     this.reloadEvents(options.listenersPath);
   }
 
-  async reloadEvents(path: string) {
+  async reloadEvents(dir: string) {
     this.listeners = [];
 
-    const files = await fs.readdir(path);
+    const files = await fs.readdir(dir);
 
     files.forEach(async (file) => {
       if (file.endsWith(".d.ts") || !(file.endsWith(".ts") || file.endsWith(".js"))) return;
 
       try {
-        const listener = new ((await import(`./../events/${file}`)).default)() as BaseListener;
+        const listener = new ((await import(path.join(dir, file))).default)() as BaseListener;
         this.listeners.push(listener);
 
         console.log(

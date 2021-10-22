@@ -19,6 +19,7 @@ import {
   Interaction,
 } from "discord.js";
 import fs from "fs/promises";
+import path from "path";
 import DisBot from "../DisBot";
 
 function getGuildMember(interaction: Interaction): GuildMember | undefined {
@@ -195,7 +196,7 @@ interface Command {
   permission?: CommandPermissions;
   argument: SlashArgument[];
   /**
-   * "global" -> Will be registered to all guilds.
+   * "global" -> Will be registered to all guilds. | 
    * string[] -> Array of guild ids that the command will be sent to.
    */
   accessibleFrom: "global" | string[];
@@ -211,7 +212,9 @@ export class BaseCommand implements Command {
   name: string;
   description: string;
   permission?: CommandPermissions;
+  /** Will be ignored if using subcommands */
   argument: SlashArgument[];
+  /** Arguments will be ignored if this is used */
   subcommands: BaseSubcommand[];
   accessibleFrom: "global" | string[];
 
@@ -337,10 +340,10 @@ export default class CommandHandler {
     this.reloadCommands(options.commandsPath);
   }
 
-  async reloadCommands(path: string) {
+  async reloadCommands(dir: string) {
     this.commands = [];
 
-    const files = await fs.readdir(path);
+    const files = await fs.readdir(dir);
 
     files.forEach(async (file) => {
       if (
@@ -350,11 +353,9 @@ export default class CommandHandler {
         return;
 
       try {
-        const command = new (
-          await import(`./../commands/${file}`)
-        ).default() as BaseCommand;
-
+        const command = new ((await import(path.join(dir, file))).default)() as BaseCommand;
         this.commands.push(command);
+        
         console.log(`Loaded command "${command.name}"`);
       } catch (e) {
         if (this.bot.debug) {
