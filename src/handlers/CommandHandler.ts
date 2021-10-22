@@ -310,7 +310,13 @@ export default class CommandHandler {
     client.on("interactionCreate", async (interaction) => {
       if (!interaction.isCommand()) return;
 
-      const cmd = await bot.commandManager.findCommand(interaction.commandName);
+      // TODO: Implement a better method for subcommand groups (including extracted try/catch getter)
+      let subcommand = null;
+      try {
+        subcommand = interaction.options.getSubcommand()
+      } catch (e) {}
+
+      const cmd = await bot.commandManager.findCommand(interaction.commandName, subcommand);
       if (cmd === undefined) return;
 
       const member = getGuildMember(interaction);
@@ -417,9 +423,20 @@ export default class CommandHandler {
     });
   }
 
-  async findCommand(name: string) {
-    return this.commands.find((cmd) => {
+  async findCommand(name: string, subcommandgroup?: string | null, subcommand?: string | null) {
+    const cmd = this.commands.find((cmd) => {
       return cmd.name === name;
     });
+
+    if (cmd === undefined) return undefined;
+
+    if (subcommandgroup !== undefined && subcommand !== null && cmd.subcommands.length > 0) {
+      const scg = cmd.subcommands.find((sb) => sb.name === subcommandgroup);
+      
+      return scg === undefined ? cmd : scg;
+      // TODO: SubcommandGroups and Subcommand support.
+    }
+
+    return cmd;
   }
 }
