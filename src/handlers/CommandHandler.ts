@@ -195,11 +195,6 @@ interface Command {
   description: string;
   permission?: CommandPermissions;
   argument: SlashArgument[];
-  /**
-   * "global" -> Will be registered to all guilds. | 
-   * string[] -> Array of guild ids that the command will be sent to.
-   */
-  accessibleFrom: "global" | string[];
 
   // TODO: CommandInteraction should be wrapped in a future.
   execute(
@@ -216,6 +211,10 @@ export class BaseCommand implements Command {
   argument: SlashArgument[];
   /** Arguments will be ignored if this is used */
   subcommands: BaseSubcommand[];
+  /**
+   * "global" -> Will be registered to all guilds. |
+   * string[] -> Array of guild ids that the command will be sent to.
+   */
   accessibleFrom: "global" | string[];
 
   constructor(
@@ -264,14 +263,12 @@ export class BaseSubcommand implements Command {
   description: string;
   permission?: CommandPermissions;
   argument: SlashArgument[];
-  accessibleFrom: "global" | string[];
 
   constructor(
     name: string,
     description: string,
     permission?: CommandPermissions,
-    argument?: SlashArgument | SlashArgument[],
-    accessibleFrom?: "global" | string[]
+    argument?: SlashArgument | SlashArgument[]
   ) {
     this.name = name;
     this.description = description;
@@ -285,9 +282,6 @@ export class BaseSubcommand implements Command {
     } else {
       this.argument = argument;
     }
-
-    this.accessibleFrom =
-      accessibleFrom === undefined ? "global" : accessibleFrom;
   }
 
   async execute(
@@ -353,9 +347,11 @@ export default class CommandHandler {
         return;
 
       try {
-        const command = new ((await import(path.join(dir, file))).default)() as BaseCommand;
+        const command = new (
+          await import(path.join(dir, file))
+        ).default() as BaseCommand;
         this.commands.push(command);
-        
+
         console.log(`Loaded command "${command.name}"`);
       } catch (e) {
         if (this.bot.debug) {
@@ -407,10 +403,15 @@ export default class CommandHandler {
       const rest = new REST({ version: "9" }).setToken(this.bot._token);
 
       if (cmd.accessibleFrom === "global") {
-        await rest.put(Routes.applicationCommands(this.bot._client.user!.id), {body: [slashBuilder]});
+        await rest.put(Routes.applicationCommands(this.bot._client.user!.id), {
+          body: [slashBuilder],
+        });
       } else {
         cmd.accessibleFrom.forEach((guildid) => {
-          rest.put(Routes.applicationGuildCommands(this.bot._client.user!.id, guildid), {body: [slashBuilder]})
+          rest.put(
+            Routes.applicationGuildCommands(this.bot._client.user!.id, guildid),
+            { body: [slashBuilder] }
+          );
         });
       }
     });
