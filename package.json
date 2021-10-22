@@ -1,20 +1,16 @@
 {
   "name": "disnine.js",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A Discord Framework",
-  "main": "src/main.ts",
   "scripts": {
-    "tsc": "tsc --build tsconfig.json",
-    "start": "npm run tsc && npm run start_lite",
-    "start_lite": "node dist/main.js",
-    "dev": "nodemon"
+    "tsc": "tsc --build tsconfig.json"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PolPtoAmo/disnine.js.git"
   },
   "author": "Pol",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@discordjs/builders": "^0.7.0",
     "@discordjs/rest": "^0.1.0-canary.0",
@@ -28,5 +24,15 @@
     "nodemon": "^2.0.12",
     "ts-node": "^10.2.1",
     "tslib": "^2.3.0"
-  }
+  },
+  "keywords": [
+    "discord",
+    "disnine",
+    "bot"
+  ],
+  "bugs": {
+    "url": "https://github.com/PolPtoAmo/disnine.js/issues"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts"
 }
