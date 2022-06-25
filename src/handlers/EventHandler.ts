@@ -1,8 +1,8 @@
-import fs from "fs/promises";
-import { ApplicationCommand, Client, ClientEvents, Collection, DMChannel, Guild, GuildBan, GuildChannel, GuildEmoji, GuildMember, Interaction, InvalidRequestWarningData, Invite, Message, MessageReaction, NewsChannel, PartialGuildMember, PartialMessage, PartialMessageReaction, PartialUser, Presence, RateLimitData, Role, Snowflake, StageInstance, Sticker, TextBasedChannels, TextChannel, ThreadChannel, ThreadMember, Typing, User, VoiceState } from "discord.js";
-import DisBot from "../DisBot";
-import { BaseCommand } from "./CommandHandler";
-import path from "path";
+import { ClientEvents, MessageReaction, TextChannel, User } from 'discord.js';
+import fs from 'fs/promises';
+import path from 'path';
+
+import DisBot from '../DisBot';
 
 export enum Priority {
   EMERGENCY = 256,
@@ -13,7 +13,8 @@ export enum Priority {
   LOWEST = -128,
 }
 
-export interface DisEvents {
+// @Deprecated
+/*export interface DisEvents {
   // Extracted from Discord's API. TODO: Needs cleanup:
 
   // applicationCommandCreate: [command: ApplicationCommand];
@@ -95,9 +96,10 @@ export interface DisEvents {
 
   // Added events
   noPermissions: [member: GuildMember, command: BaseCommand];
-}
+}*/
 
-export type DisEventsNames = keyof DisEvents;
+//export type DisEventsNames = keyof DisEvents;
+export type DisEventsNames = keyof ClientEvents;
 
 export class BaseListener {
   event: DisEventsNames;
